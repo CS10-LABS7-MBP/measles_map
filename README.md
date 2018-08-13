@@ -1,1 +1,1 @@
-# Exploring infections through data: Mapping Measles, Mumps, and Rubella in the USA
+# Exploring infections through data: Mapping Measles in the USA
