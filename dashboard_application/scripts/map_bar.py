@@ -1,7 +1,15 @@
-def dashboard(app):
+from bokeh.plotting import figure
+from bokeh.models import LogColorMapper, ColumnDataSource, HoverTool, LinearColorMapper, ColorBar, Panel
+from bokeh.models.widgets import Select, Slider, Tabs, Select
+from bokeh.layouts import column, row, WidgetBox
+from bokeh.application.handlers import FunctionHandler
+from bokeh.application import Application
+from bokeh.transform import factor_cmap
+
+def map_bar_tab(source):
     
-    def create_data(year):
-        df = measles_yearly_data[measles_yearly_data["year"] == year]
+    def create_data(source, year):
+        df = source[source["year"] == year]
         df = df.dropna()
         assert len(df) > 0, "No data for this disease and year combination"
         
@@ -16,9 +24,10 @@ def dashboard(app):
         )
         
         return ColumnDataSource(data)
+        
     def cases_bar_plot(src):
         states = src.data["state_name"]
-        bar = figure(plot_width=600, plot_height=400, 
+        bar = figure(plot_width=550, plot_height=350, 
                      title="Total cases of Measles in the United States",
                x_range=states, toolbar_location=None, tools="", y_range = (0, 110000))
         bar.xgrid.grid_line_color = None
@@ -35,7 +44,7 @@ def dashboard(app):
     
     def incidence_bar_plot(src):
         states = src.data["state_name"]
-        bar = figure(plot_width=600, plot_height=400, 
+        bar = figure(plot_width=550, plot_height=350, 
                      title="Average weekly incidence of Measles in the United States",
                x_range=states, toolbar_location=None, tools="", y_range = (0, 62))
         bar.xgrid.grid_line_color = None
@@ -53,7 +62,6 @@ def dashboard(app):
     def build_map(src):
 
         TOOLS = "pan,wheel_zoom,reset,hover,save"
-        #colors = ["#75968f", "#a5bab7", "#c9d9d3", "#e2e2e2", "#dfccce", "#ddb7b1", "#cc7878", "#933b41", "#550b1d"]
         colors = ["#A7D49B", "#92AC86", "#696047", "#55251D", "#5A1807"]
         color_mapper = LinearColorMapper(palette=colors, low=src.data["incidence_per_capita"].min(), high=src.data["incidence_per_capita"].max())
         p = figure(
@@ -62,7 +70,7 @@ def dashboard(app):
             tooltips=[
                 ("Name", "@state_name"), ("Average incidences per capita per week", "@incidence_per_capita{1.11}"), 
                 ("Average # of cases per week", "@avg_cases{1.11}"), ("Total cases in year", "@total_cases{1.11}")
-            ], plot_width=1000, plot_height=800)
+            ], plot_width=850, plot_height=650)
         p.grid.grid_line_color = None
         p.hover.point_policy = "follow_mouse"
         p.patches('x', 'y', source=src, hover_line_color="black",
@@ -73,7 +81,7 @@ def dashboard(app):
     
     def update_map(attr, old, new):
         chosen_year = choose_year.value
-        new_data = create_data(chosen_year)
+        new_data = create_data(source, chosen_year)
         src.data.update(new_data.data)
         
     #Define Widgets
@@ -81,7 +89,7 @@ def dashboard(app):
     choose_year.on_change('value', update_map)
     
     #Select starting data
-    src = create_data(1928)
+    src = create_data(source, 1928)
     
     #Init plot and set layout
     controls = WidgetBox(choose_year)
@@ -89,5 +97,5 @@ def dashboard(app):
     b_cases = cases_bar_plot(src)
     b_incidence = incidence_bar_plot(src)
     layout = row(column(controls, m), column(b_cases, b_incidence))
-    app.add_root(layout)
-    
+    tab = Panel(child = layout, title = "Measles Map")
+    return tab    
